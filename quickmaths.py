@@ -243,21 +243,24 @@ def score_question(
     time_s: float,
     mode: str,
 ) -> Tuple[int, Dict[str, float]]:
-    # Accuracy factor: full credit at zero error; linear down to zero at tolerance
-    acc = 1.0 - (abs_error / tolerance)
+    # Difficulty-aware nonlinear accuracy: close answers on hard items get better credit
+    eff = (abs_error / tolerance) if tolerance > 0 else float("inf")
+    gamma = 1.0 + (difficulty - 1.0) / 4.0  # 1..~2 as difficulty increases
+    acc = 1.0 - (eff ** gamma)
     acc = clamp(acc, 0.0, 1.0)
 
-    # Speed factor: decreases with time; speed matters more for easy problems
+    # Speed factor: decreases with time; denominator scales with difficulty
     base_denom = 6.0
     denom = base_denom * (difficulty ** 0.8)
     spd = 1.0 / (1.0 + (time_s / denom))
 
-    # Weighting: speed counts more when easier
-    w_speed = clamp(0.5 / math.sqrt(difficulty), 0.2, 0.5)
+    # Weighting: speed counts more when easier; slightly higher floor for speed weight
+    w_speed = clamp(0.5 / math.sqrt(difficulty), 0.25, 0.5)
     w_acc = 1.0 - w_speed
 
-    # Dampen speed credit when accuracy is poor
-    spd_acc_weight = 0.1 + 0.9 * acc  # between 0.1 and 1.0
+    # Preserve some speed credit on hard items even with imperfect accuracy
+    alpha = 0.2 * ((difficulty - 1.0) / 4.0)  # 0..0.2 across difficulty range
+    spd_acc_weight = 0.1 + 0.9 * (alpha + (1.0 - alpha) * acc)
     composite = w_acc * acc + w_speed * spd * spd_acc_weight
     score = int(round(100 * composite))
     breakdown = {
