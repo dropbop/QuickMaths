@@ -5,7 +5,15 @@ Run a fast, flexible CLI game focused on quick mental math across multiple modes
 How to run
 
 - Prerequisite: Python 3.8+ installed
-- From this folder, run: `python quickmaths.py`
+- CLI: `python quickmaths.py`
+- GUI: `python quickmaths_gui.py`
+
+GUI mode
+
+- Choose mode, difficulty (for arithmetic/mixed), and number of questions.
+- Answer directly in the input box; press Enter or click Submit.
+- The timer runs per question; scoring balances accuracy and speed.
+- A summary view appears at the end with your total score.
 
 Game modes
 
