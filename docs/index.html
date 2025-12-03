@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickMaths - Mental Math Challenge</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <header class="start-header">
+                <h1>QuickMaths</h1>
+                <p class="tagline">Train your mental math. Get faster. Get sharper.</p>
+            </header>
+
+            <div class="config-section">
+                <div class="config-group">
+                    <label class="config-label">Mode</label>
+                    <div class="mode-buttons">
+                        <button class="mode-btn active" data-mode="arithmetic">
+                            <span class="mode-icon">+−×÷</span>
+                            <span class="mode-name">Arithmetic</span>
+                        </button>
+                        <button class="mode-btn" data-mode="unit">
+                            <span class="mode-icon">📏</span>
+                            <span class="mode-name">Units</span>
+                        </button>
+                        <button class="mode-btn" data-mode="timezone">
+                            <span class="mode-icon">🌍</span>
+                            <span class="mode-name">Timezones</span>
+                        </button>
+                        <button class="mode-btn" data-mode="mixed">
+                            <span class="mode-icon">🎲</span>
+                            <span class="mode-name">Mixed</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="config-group" id="difficulty-group">
+                    <label class="config-label">Difficulty</label>
+                    <div class="difficulty-buttons">
+                        <button class="diff-btn" data-level="easy">Easy</button>
+                        <button class="diff-btn active" data-level="medium">Medium</button>
+                        <button class="diff-btn" data-level="hard">Hard</button>
+                    </div>
+                    <p class="diff-description" id="diff-description">Mix of operators with some 3-digit numbers</p>
+                </div>
+
+                <div class="config-group">
+                    <label class="config-label">Questions</label>
+                    <div class="question-selector">
+                        <button class="q-btn" data-count="5">5</button>
+                        <button class="q-btn active" data-count="10">10</button>
+                        <button class="q-btn" data-count="20">20</button>
+                        <button class="q-btn" data-count="50">50</button>
+                    </div>
+                </div>
+            </div>
+
+            <button id="start-btn" class="primary-btn">Start Game</button>
+
+            <div class="info-section">
+                <details>
+                    <summary>How Scoring Works</summary>
+                    <div class="info-content">
+                        <p><strong>Each question is worth up to 100 points.</strong></p>
+                        <p>Your score combines <em>accuracy</em> and <em>speed</em>:</p>
+                        <ul>
+                            <li>Easy problems: Speed matters more (up to 50%)</li>
+                            <li>Hard problems: Accuracy matters more (up to 75%)</li>
+                            <li>Partial credit for close answers on hard problems</li>
+                        </ul>
+                    </div>
+                </details>
+                <details>
+                    <summary>Unit Conversions Reference</summary>
+                    <div class="info-content">
+                        <p><strong>Length:</strong> mm, cm, m, km, in, ft, yd, mi</p>
+                        <p><strong>Mass:</strong> g, kg, lb, oz</p>
+                        <p><strong>Volume:</strong> ml, L, gal, cup</p>
+                        <p><strong>Temperature:</strong> C, F, K</p>
+                    </div>
+                </details>
+                <details>
+                    <summary>Timezones Used</summary>
+                    <div class="info-content">
+                        <p>UTC, PST (−8), EST (−5), CET (+1), IST (+5:30), JST (+9), AEST (+10), NPT (+5:45)</p>
+                        <p><em>DST is ignored for simplicity.</em></p>
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <header class="game-header">
+                <div class="progress-info">
+                    <span id="progress-text">1 / 10</span>
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                </div>
+                <div class="score-info">
+                    <span class="score-label">Score</span>
+                    <span id="current-score" class="score-value">0</span>
+                </div>
+                <div class="timer-info">
+                    <span id="timer" class="timer">0.0s</span>
+                </div>
+            </header>
+
+            <main class="game-main">
+                <div class="problem-container">
+                    <div id="problem-prompt" class="problem-prompt"></div>
+                    <div id="problem-hint" class="problem-hint"></div>
+                </div>
+
+                <div class="answer-container">
+                    <input type="text"
+                           id="answer-input"
+                           class="answer-input"
+                           placeholder="Your answer..."
+                           autocomplete="off"
+                           inputmode="decimal">
+                    <button id="submit-btn" class="submit-btn">Submit</button>
+                </div>
+
+                <div id="feedback-container" class="feedback-container hidden">
+                    <div id="feedback-result" class="feedback-result"></div>
+                    <div id="feedback-details" class="feedback-details"></div>
+                    <button id="next-btn" class="next-btn">Next Question</button>
+                </div>
+            </main>
+
+            <footer class="game-footer">
+                <button id="quit-btn" class="quit-btn">Quit Game</button>
+            </footer>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="results-screen" class="screen">
+            <header class="results-header">
+                <h2>Game Complete!</h2>
+            </header>
+
+            <div class="results-main">
+                <div class="final-score-container">
+                    <div class="final-score-circle">
+                        <span id="final-score" class="final-score-number">0</span>
+                        <span class="final-score-max">/ <span id="max-score">1000</span></span>
+                    </div>
+                    <div id="score-rating" class="score-rating"></div>
+                </div>
+
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <span class="stat-value" id="avg-time">0.0s</span>
+                        <span class="stat-label">Avg Time</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="accuracy-rate">0%</span>
+                        <span class="stat-label">Accuracy</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="best-score">0</span>
+                        <span class="stat-label">Best Round</span>
+                    </div>
+                </div>
+
+                <details class="results-breakdown">
+                    <summary>Question Breakdown</summary>
+                    <div id="breakdown-list" class="breakdown-list"></div>
+                </details>
+            </div>
+
+            <div class="results-actions">
+                <button id="play-again-btn" class="primary-btn">Play Again</button>
+                <button id="change-settings-btn" class="secondary-btn">Change Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
