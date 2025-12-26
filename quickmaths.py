@@ -31,13 +31,17 @@ def parse_float(s: str) -> Optional[float]:
 
 
 def parse_hhmm(s: str) -> Optional[int]:
-    # Returns minutes since midnight (0..1439) for 24h HH:MM
+    # Returns minutes since midnight (0..1439) for 24h HH:MM or HH.MM
     s = s.strip()
     if not s:
         return None
-    if ":" not in s:
+    # Accept either : or . as separator (. is easier on mobile keyboards)
+    if ":" in s:
+        hh, mm = s.split(":", 1)
+    elif "." in s:
+        hh, mm = s.split(".", 1)
+    else:
         return None
-    hh, mm = s.split(":", 1)
     if not (hh.isdigit() and mm.isdigit()):
         return None
     h = int(hh)
@@ -478,7 +482,7 @@ def show_unit_hint(prob: Problem):
     if prob.mode == "unit" and prob.unit_hint:
         print(f"Answer in {prob.unit_hint}")
     elif prob.mode == "timezone":
-        print("Answer format: 24h HH:MM (e.g. 09:05)")
+        print("Answer format: 24h HH:MM or HH.MM (e.g. 09:05 or 09.05)")
 
 
 def run_game():

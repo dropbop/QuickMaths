@@ -21,8 +21,15 @@ function parseFloat_(s) {
 function parseHHMM(s) {
     if (!s || typeof s !== 'string') return null;
     s = s.trim();
-    if (!s.includes(':')) return null;
-    const [hh, mm] = s.split(':');
+    // Accept either : or . as separator (. is easier on mobile keyboards)
+    let hh, mm;
+    if (s.includes(':')) {
+        [hh, mm] = s.split(':');
+    } else if (s.includes('.')) {
+        [hh, mm] = s.split('.');
+    } else {
+        return null;
+    }
     if (!/^\d+$/.test(hh) || !/^\d+$/.test(mm)) return null;
     const h = parseInt(hh, 10);
     const m = parseInt(mm, 10);
@@ -516,7 +523,7 @@ function nextQuestion() {
     if (GameState.currentProblem.mode === 'unit' && GameState.currentProblem.unitHint) {
         elements.problemHint.textContent = `Answer in ${GameState.currentProblem.unitHint}`;
     } else if (GameState.currentProblem.mode === 'timezone') {
-        elements.problemHint.textContent = 'Format: HH:MM (24-hour)';
+        elements.problemHint.textContent = 'Format: HH:MM or HH.MM (24-hour)';
     } else {
         elements.problemHint.textContent = '';
     }

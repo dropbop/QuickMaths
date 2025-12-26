@@ -299,7 +299,7 @@ class QuickMathsGUI(tk.Tk):
         if self.current_problem.mode == "unit" and getattr(self.current_problem, "unit_hint", None):
             self.lbl_hint.configure(text=f"Answer in {self.current_problem.unit_hint}")
         elif self.current_problem.mode == "timezone":
-            self.lbl_hint.configure(text="Answer format: 24h HH:MM (e.g. 09:05)")
+            self.lbl_hint.configure(text="Answer format: HH:MM or HH.MM (e.g. 09:05 or 09.05)")
         else:
             self.lbl_hint.configure(text="")
 
