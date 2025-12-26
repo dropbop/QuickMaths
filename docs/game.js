@@ -119,6 +119,14 @@ const VOLUME_FACTORS = {
 
 const TEMP_UNITS = ['C', 'F', 'K'];
 
+const NUMBER_FACTORS = {
+    'thousand': 1000.0,
+    'lakh': 100000.0,
+    'million': 1000000.0,
+    'crore': 10000000.0,
+    'billion': 1000000000.0,
+};
+
 function convertLength(value, src, dst) {
     return value * LENGTH_FACTORS[src] / LENGTH_FACTORS[dst];
 }
@@ -145,6 +153,27 @@ function convertTemp(value, src, dst) {
     if (dst === 'F') return c * 9 / 5 + 32;
     if (dst === 'K') return c + 273.15;
     throw new Error('Unknown temp unit');
+}
+
+function convertNumber(value, src, dst) {
+    return value * NUMBER_FACTORS[src] / NUMBER_FACTORS[dst];
+}
+
+// Helper to get units for a category with optional filtering
+function getUnitsForCategory(category, unitConfig) {
+    const allUnits = {
+        'length': Object.keys(LENGTH_FACTORS),
+        'mass': Object.keys(MASS_FACTORS),
+        'volume': Object.keys(VOLUME_FACTORS),
+        'temp': TEMP_UNITS,
+        'number': Object.keys(NUMBER_FACTORS),
+    };
+    const available = allUnits[category] || [];
+    if (unitConfig && unitConfig.allowedUnits && unitConfig.allowedUnits[category]) {
+        const allowed = unitConfig.allowedUnits[category];
+        return available.filter(u => allowed.has(u));
+    }
+    return available;
 }
 
 // ============================================
@@ -174,7 +203,7 @@ function arithmeticTolerance(target, difficulty) {
 }
 
 function unitDifficulty(category, src, dst, value) {
-    let base = {'length': 1.6, 'mass': 1.6, 'volume': 1.7, 'temp': 2.4}[category] || 1.8;
+    let base = {'length': 1.6, 'mass': 1.6, 'volume': 1.7, 'temp': 2.4, 'number': 1.8}[category] || 1.8;
 
     let spread = 0.0;
     if (['length', 'mass', 'volume'].includes(category)) {
@@ -188,6 +217,16 @@ function unitDifficulty(category, src, dst, value) {
         if (pair.has('C') && pair.has('F')) base += 0.2;
         else if (pair.has('C') && pair.has('K')) base += 0.1;
         else base += 0.3;
+    }
+
+    if (category === 'number') {
+        const large = new Set(['billion', 'crore']);
+        const small = new Set(['thousand', 'lakh']);
+        if ((large.has(src) && small.has(dst)) || (small.has(src) && large.has(dst))) {
+            spread = 0.3;
+        } else if (large.has(src) || large.has(dst)) {
+            spread = 0.2;
+        }
     }
 
     const mag = Math.log10(Math.max(1.0, Math.abs(value))) * 0.15;
@@ -313,31 +352,57 @@ function genArithmetic(level) {
     };
 }
 
-function genUnitConversion() {
-    const categories = ['length', 'mass', 'temp', 'volume'];
+function genUnitConversion(unitConfig = null) {
+    const allCategories = ['length', 'mass', 'temp', 'volume', 'number'];
+
+    // Filter to enabled categories
+    let categories = allCategories;
+    if (unitConfig && unitConfig.enabledCategories) {
+        categories = allCategories.filter(c => unitConfig.enabledCategories.has(c));
+    }
+    if (categories.length === 0) {
+        categories = allCategories;
+    }
+
     const cat = randChoice(categories);
 
     let units, value, target, src, dst;
 
     if (cat === 'length') {
-        units = Object.keys(LENGTH_FACTORS);
+        let allUnits = Object.keys(LENGTH_FACTORS);
+        units = getUnitsForCategory(cat, unitConfig);
+        if (units.length < 2) units = allUnits;
         [src, dst] = randSample(units, 2);
         value = roundTo(randFloat(0.5, 5000), randChoice([0, 1, 2]));
         target = convertLength(value, src, dst);
     } else if (cat === 'mass') {
-        units = Object.keys(MASS_FACTORS);
+        let allUnits = Object.keys(MASS_FACTORS);
+        units = getUnitsForCategory(cat, unitConfig);
+        if (units.length < 2) units = allUnits;
         [src, dst] = randSample(units, 2);
         value = roundTo(randFloat(0.5, 500), randChoice([0, 1, 2]));
         target = convertMass(value, src, dst);
     } else if (cat === 'volume') {
-        units = Object.keys(VOLUME_FACTORS);
+        let allUnits = Object.keys(VOLUME_FACTORS);
+        units = getUnitsForCategory(cat, unitConfig);
+        if (units.length < 2) units = allUnits;
         [src, dst] = randSample(units, 2);
         value = roundTo(randFloat(0.5, 200), randChoice([0, 1, 2]));
         target = convertVolume(value, src, dst);
-    } else { // temp
-        [src, dst] = randSample(TEMP_UNITS, 2);
+    } else if (cat === 'temp') {
+        let allUnits = TEMP_UNITS;
+        units = getUnitsForCategory(cat, unitConfig);
+        if (units.length < 2) units = allUnits;
+        [src, dst] = randSample(units, 2);
         value = roundTo(randFloat(-40, 150), randChoice([0, 0, 1]));
         target = convertTemp(value, src, dst);
+    } else { // number
+        let allUnits = Object.keys(NUMBER_FACTORS);
+        units = getUnitsForCategory(cat, unitConfig);
+        if (units.length < 2) units = allUnits;
+        [src, dst] = randSample(units, 2);
+        value = roundTo(randFloat(0.5, 500), randChoice([0, 1, 2]));
+        target = convertNumber(value, src, dst);
     }
 
     const diff = unitDifficulty(cat, src, dst, value);
@@ -380,18 +445,18 @@ function genTimezone() {
     };
 }
 
-function genMixed(level) {
+function genMixed(level, unitConfig = null) {
     const pick = Math.random();
     if (pick < 0.5) return genArithmetic(level);
-    if (pick < 0.75) return genUnitConversion();
+    if (pick < 0.75) return genUnitConversion(unitConfig);
     return genTimezone();
 }
 
-function makeProblem(mode, level) {
+function makeProblem(mode, level, unitConfig = null) {
     if (mode === 'arithmetic') return genArithmetic(level);
-    if (mode === 'unit') return genUnitConversion();
+    if (mode === 'unit') return genUnitConversion(unitConfig);
     if (mode === 'timezone') return genTimezone();
-    return genMixed(level);
+    return genMixed(level, unitConfig);
 }
 
 // ============================================
@@ -407,6 +472,10 @@ const GameState = {
     currentProblem: null,
     startTime: 0,
     timerInterval: null,
+    unitConfig: {
+        enabledCategories: new Set(['length', 'mass', 'volume', 'temp', 'number']),
+        allowedUnits: {},
+    },
     results: [],
 };
 
@@ -427,6 +496,7 @@ const elements = {
     diffDescription: document.getElementById('diff-description'),
     questionButtons: document.querySelectorAll('.q-btn'),
     startBtn: document.getElementById('start-btn'),
+    unitSettingsGroup: document.getElementById('unit-settings-group'),
 
     // Game screen
     progressText: document.getElementById('progress-text'),
@@ -475,6 +545,73 @@ function updateDifficultyDescription() {
     elements.diffDescription.textContent = descriptions[GameState.level];
 }
 
+function updateUnitSettingsVisibility() {
+    if (elements.unitSettingsGroup) {
+        if (GameState.mode === 'unit' || GameState.mode === 'mixed') {
+            elements.unitSettingsGroup.style.display = 'block';
+        } else {
+            elements.unitSettingsGroup.style.display = 'none';
+        }
+    }
+}
+
+function collectUnitConfig() {
+    const config = {
+        enabledCategories: new Set(),
+        allowedUnits: {},
+    };
+
+    // Collect enabled categories
+    document.querySelectorAll('.category-checkbox').forEach(cb => {
+        const category = cb.dataset.category;
+        if (cb.checked) {
+            config.enabledCategories.add(category);
+
+            // Collect allowed units for this category
+            const unitCheckboxes = document.querySelectorAll(`#units-${category} input[type="checkbox"]:checked`);
+            if (unitCheckboxes.length > 0) {
+                config.allowedUnits[category] = new Set(
+                    Array.from(unitCheckboxes).map(u => u.value)
+                );
+            }
+        }
+    });
+
+    // Fallback to all if none selected
+    if (config.enabledCategories.size === 0) {
+        config.enabledCategories = new Set(['length', 'mass', 'volume', 'temp', 'number']);
+    }
+
+    return config;
+}
+
+function initUnitSettings() {
+    // Category checkbox toggles
+    document.querySelectorAll('.category-checkbox').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const category = cb.dataset.category;
+            const unitCategory = cb.closest('.unit-category');
+            if (unitCategory) {
+                unitCategory.classList.toggle('disabled', !cb.checked);
+            }
+        });
+    });
+
+    // Expand buttons
+    document.querySelectorAll('.expand-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const category = btn.dataset.category;
+            const unitOptions = document.getElementById(`units-${category}`);
+            if (unitOptions) {
+                const isExpanded = unitOptions.style.display !== 'none';
+                unitOptions.style.display = isExpanded ? 'none' : 'grid';
+                btn.classList.toggle('expanded', !isExpanded);
+                btn.textContent = isExpanded ? 'Customize' : 'Hide';
+            }
+        });
+    });
+}
+
 function startTimer() {
     GameState.startTime = Date.now();
     elements.timer.textContent = '0.0s';
@@ -511,7 +648,7 @@ function nextQuestion() {
     }
 
     GameState.currentRound++;
-    GameState.currentProblem = makeProblem(GameState.mode, GameState.level);
+    GameState.currentProblem = makeProblem(GameState.mode, GameState.level, GameState.unitConfig);
 
     // Update UI
     elements.progressText.textContent = `${GameState.currentRound} / ${GameState.totalRounds}`;
@@ -676,6 +813,9 @@ elements.modeButtons.forEach(btn => {
         } else {
             elements.difficultyGroup.style.display = 'none';
         }
+
+        // Show/hide unit settings
+        updateUnitSettingsVisibility();
     });
 });
 
@@ -700,6 +840,8 @@ elements.questionButtons.forEach(btn => {
 
 // Start game
 elements.startBtn.addEventListener('click', () => {
+    // Collect unit config before starting
+    GameState.unitConfig = collectUnitConfig();
     resetGame();
     showScreen('game-screen');
     nextQuestion();
@@ -742,3 +884,4 @@ elements.changeSettingsBtn.addEventListener('click', () => {
 
 // Initialize
 updateDifficultyDescription();
+initUnitSettings();

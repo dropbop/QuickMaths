@@ -227,6 +227,115 @@ body {
     color: var(--text-primary);
 }
 
+/* Unit Settings Panel */
+.unit-settings-group {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.settings-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.unit-category {
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.unit-category.disabled {
+    opacity: 0.5;
+}
+
+.unit-category.disabled .unit-options {
+    pointer-events: none;
+}
+
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+}
+
+.category-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.category-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+}
+
+.category-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.expand-btn {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.expand-btn:hover {
+    border-color: var(--accent-secondary);
+    color: var(--text-primary);
+}
+
+.expand-btn.expanded {
+    background: rgba(108, 92, 231, 0.15);
+    border-color: var(--accent-primary);
+}
+
+.unit-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 6px;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border-top: 1px solid var(--border-color);
+}
+
+.unit-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.unit-option:hover {
+    color: var(--text-primary);
+}
+
+.unit-option input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+}
+
 /* Primary Button */
 .primary-btn {
     width: 100%;

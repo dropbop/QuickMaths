@@ -48,6 +48,95 @@
                     <p class="diff-description" id="diff-description">Mix of operators with some 3-digit numbers</p>
                 </div>
 
+                <div class="config-group unit-settings-group" id="unit-settings-group" style="display: none;">
+                    <label class="config-label">Unit Settings</label>
+                    <p class="settings-hint">Select categories and customize units</p>
+
+                    <div class="unit-category">
+                        <div class="category-header">
+                            <label class="category-toggle">
+                                <input type="checkbox" class="category-checkbox" data-category="length" checked>
+                                <span class="category-name">Length</span>
+                            </label>
+                            <button type="button" class="expand-btn" data-category="length">Customize</button>
+                        </div>
+                        <div class="unit-options" id="units-length" style="display: none;">
+                            <label class="unit-option"><input type="checkbox" value="mm" checked> mm</label>
+                            <label class="unit-option"><input type="checkbox" value="cm" checked> cm</label>
+                            <label class="unit-option"><input type="checkbox" value="m" checked> m</label>
+                            <label class="unit-option"><input type="checkbox" value="km" checked> km</label>
+                            <label class="unit-option"><input type="checkbox" value="in" checked> in</label>
+                            <label class="unit-option"><input type="checkbox" value="ft" checked> ft</label>
+                            <label class="unit-option"><input type="checkbox" value="yd" checked> yd</label>
+                            <label class="unit-option"><input type="checkbox" value="mi" checked> mi</label>
+                        </div>
+                    </div>
+
+                    <div class="unit-category">
+                        <div class="category-header">
+                            <label class="category-toggle">
+                                <input type="checkbox" class="category-checkbox" data-category="mass" checked>
+                                <span class="category-name">Mass</span>
+                            </label>
+                            <button type="button" class="expand-btn" data-category="mass">Customize</button>
+                        </div>
+                        <div class="unit-options" id="units-mass" style="display: none;">
+                            <label class="unit-option"><input type="checkbox" value="g" checked> g</label>
+                            <label class="unit-option"><input type="checkbox" value="kg" checked> kg</label>
+                            <label class="unit-option"><input type="checkbox" value="lb" checked> lb</label>
+                            <label class="unit-option"><input type="checkbox" value="oz" checked> oz</label>
+                        </div>
+                    </div>
+
+                    <div class="unit-category">
+                        <div class="category-header">
+                            <label class="category-toggle">
+                                <input type="checkbox" class="category-checkbox" data-category="volume" checked>
+                                <span class="category-name">Volume</span>
+                            </label>
+                            <button type="button" class="expand-btn" data-category="volume">Customize</button>
+                        </div>
+                        <div class="unit-options" id="units-volume" style="display: none;">
+                            <label class="unit-option"><input type="checkbox" value="ml" checked> ml</label>
+                            <label class="unit-option"><input type="checkbox" value="L" checked> L</label>
+                            <label class="unit-option"><input type="checkbox" value="gal" checked> gal</label>
+                            <label class="unit-option"><input type="checkbox" value="cup" checked> cup</label>
+                        </div>
+                    </div>
+
+                    <div class="unit-category">
+                        <div class="category-header">
+                            <label class="category-toggle">
+                                <input type="checkbox" class="category-checkbox" data-category="temp" checked>
+                                <span class="category-name">Temperature</span>
+                            </label>
+                            <button type="button" class="expand-btn" data-category="temp">Customize</button>
+                        </div>
+                        <div class="unit-options" id="units-temp" style="display: none;">
+                            <label class="unit-option"><input type="checkbox" value="C" checked> C</label>
+                            <label class="unit-option"><input type="checkbox" value="F" checked> F</label>
+                            <label class="unit-option"><input type="checkbox" value="K" checked> K</label>
+                        </div>
+                    </div>
+
+                    <div class="unit-category">
+                        <div class="category-header">
+                            <label class="category-toggle">
+                                <input type="checkbox" class="category-checkbox" data-category="number" checked>
+                                <span class="category-name">Number</span>
+                            </label>
+                            <button type="button" class="expand-btn" data-category="number">Customize</button>
+                        </div>
+                        <div class="unit-options" id="units-number" style="display: none;">
+                            <label class="unit-option"><input type="checkbox" value="thousand" checked> thousand</label>
+                            <label class="unit-option"><input type="checkbox" value="lakh" checked> lakh</label>
+                            <label class="unit-option"><input type="checkbox" value="million" checked> million</label>
+                            <label class="unit-option"><input type="checkbox" value="crore" checked> crore</label>
+                            <label class="unit-option"><input type="checkbox" value="billion" checked> billion</label>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="config-group">
                     <label class="config-label">Questions</label>
                     <div class="question-selector">
@@ -81,6 +170,7 @@
                         <p><strong>Mass:</strong> g, kg, lb, oz</p>
                         <p><strong>Volume:</strong> ml, L, gal, cup</p>
                         <p><strong>Temperature:</strong> C, F, K</p>
+                        <p><strong>Number:</strong> thousand, lakh (100K), million, crore (10M), billion</p>
                     </div>
                 </details>
                 <details>

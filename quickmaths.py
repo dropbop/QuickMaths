@@ -3,8 +3,23 @@ import math
 import random
 import sys
 import time
-from dataclasses import dataclass
-from typing import Callable, Optional, Tuple, Dict, Any
+from dataclasses import dataclass, field
+from typing import Callable, Optional, Tuple, Dict, Any, Set
+
+
+@dataclass
+class UnitConfig:
+    """Configuration for which unit categories and specific units to include."""
+    enabled_categories: Set[str] = field(
+        default_factory=lambda: {"length", "mass", "volume", "temp", "number"}
+    )
+    allowed_units: Dict[str, Set[str]] = field(default_factory=dict)
+
+    def get_units_for_category(self, category: str, all_units: list) -> list:
+        """Return filtered list of units for a category."""
+        if category in self.allowed_units and self.allowed_units[category]:
+            return [u for u in all_units if u in self.allowed_units[category]]
+        return all_units
 
 
 # ---------------------------
@@ -123,6 +138,15 @@ class UnitConv:
 
     TEMP_UNITS = {"C", "F", "K"}
 
+    NUMBER_FACTORS = {
+        # to ones (base unit)
+        "thousand": 1_000.0,
+        "lakh": 100_000.0,
+        "million": 1_000_000.0,
+        "crore": 10_000_000.0,
+        "billion": 1_000_000_000.0,
+    }
+
     @staticmethod
     def convert_length(value: float, src: str, dst: str) -> float:
         return value * UnitConv.LENGTH_FACTORS[src] / UnitConv.LENGTH_FACTORS[dst]
@@ -157,6 +181,10 @@ class UnitConv:
         if dst == "K":
             return c + 273.15
         raise ValueError("Unknown temp unit")
+
+    @staticmethod
+    def convert_number(value: float, src: str, dst: str) -> float:
+        return value * UnitConv.NUMBER_FACTORS[src] / UnitConv.NUMBER_FACTORS[dst]
 
 
 # ---------------------------
@@ -201,7 +229,7 @@ def arithmetic_tolerance(target: float, difficulty: float) -> float:
 
 
 def unit_difficulty(category: str, src: str, dst: str, value: float) -> float:
-    base = {"length": 1.6, "mass": 1.6, "volume": 1.7, "temp": 2.4}.get(category, 1.8)
+    base = {"length": 1.6, "mass": 1.6, "volume": 1.7, "temp": 2.4, "number": 1.8}.get(category, 1.8)
     # Larger magnitude and unrelated units add a bit
     spread = 0.0
     if category in ("length", "mass", "volume"):
@@ -213,6 +241,14 @@ def unit_difficulty(category: str, src: str, dst: str, value: float) -> float:
             base += 0.1
         else:
             base += 0.3
+    if category == "number":
+        # Large scale differences (billion/crore vs thousand/lakh) are harder
+        large = {"billion", "crore"}
+        small = {"thousand", "lakh"}
+        if (src in large and dst in small) or (src in small and dst in large):
+            spread = 0.3
+        elif src in large or dst in large:
+            spread = 0.2
     mag = math.log10(max(1.0, abs(value))) * 0.15
     return clamp(base + spread + mag, 1.2, 5.0)
 
@@ -340,29 +376,58 @@ def gen_arithmetic(level: str) -> Problem:
     )
 
 
-def gen_unit_conversion() -> Problem:
-    categories = ["length", "mass", "temp", "volume"]
+def gen_unit_conversion(unit_config: Optional[UnitConfig] = None) -> Problem:
+    if unit_config is None:
+        unit_config = UnitConfig()
+
+    # Filter to enabled categories
+    all_categories = ["length", "mass", "temp", "volume", "number"]
+    categories = [c for c in all_categories if c in unit_config.enabled_categories]
+    if not categories:
+        categories = all_categories  # Fallback to all
+
     cat = random.choice(categories)
+
     if cat == "length":
-        units = list(UnitConv.LENGTH_FACTORS.keys())
+        all_units = list(UnitConv.LENGTH_FACTORS.keys())
+        units = unit_config.get_units_for_category(cat, all_units)
+        if len(units) < 2:
+            units = all_units
         src, dst = random.sample(units, 2)
         value = round(random.uniform(0.5, 5000), random.choice([0, 1, 2]))
         target = UnitConv.convert_length(value, src, dst)
     elif cat == "mass":
-        units = list(UnitConv.MASS_FACTORS.keys())
+        all_units = list(UnitConv.MASS_FACTORS.keys())
+        units = unit_config.get_units_for_category(cat, all_units)
+        if len(units) < 2:
+            units = all_units
         src, dst = random.sample(units, 2)
         value = round(random.uniform(0.5, 500), random.choice([0, 1, 2]))
         target = UnitConv.convert_mass(value, src, dst)
     elif cat == "volume":
-        units = list(UnitConv.VOLUME_FACTORS.keys())
+        all_units = list(UnitConv.VOLUME_FACTORS.keys())
+        units = unit_config.get_units_for_category(cat, all_units)
+        if len(units) < 2:
+            units = all_units
         src, dst = random.sample(units, 2)
         value = round(random.uniform(0.5, 200), random.choice([0, 1, 2]))
         target = UnitConv.convert_volume(value, src, dst)
-    else:  # temp
-        units = ["C", "F", "K"]
+    elif cat == "temp":
+        all_units = ["C", "F", "K"]
+        units = unit_config.get_units_for_category(cat, all_units)
+        if len(units) < 2:
+            units = all_units
         src, dst = random.sample(units, 2)
         value = round(random.uniform(-40, 150), random.choice([0, 0, 1]))
         target = UnitConv.convert_temp(value, src, dst)
+    else:  # number
+        all_units = list(UnitConv.NUMBER_FACTORS.keys())
+        units = unit_config.get_units_for_category(cat, all_units)
+        if len(units) < 2:
+            units = all_units
+        src, dst = random.sample(units, 2)
+        value = round(random.uniform(0.5, 500), random.choice([0, 1, 2]))
+        target = UnitConv.convert_number(value, src, dst)
 
     diff = unit_difficulty(cat, src, dst, value)
     tol = unit_tolerance(target, diff, cat)
@@ -400,12 +465,12 @@ def gen_timezone() -> Problem:
     )
 
 
-def gen_mixed(level: str) -> Problem:
+def gen_mixed(level: str, unit_config: Optional[UnitConfig] = None) -> Problem:
     pick = random.random()
     if pick < 0.5:
         return gen_arithmetic(level)
     elif pick < 0.75:
-        return gen_unit_conversion()
+        return gen_unit_conversion(unit_config)
     else:
         return gen_timezone()
 
@@ -468,14 +533,14 @@ def choose_rounds() -> int:
         print("Enter an integer between 1 and 100.")
 
 
-def make_problem(mode: str, level: str) -> Problem:
+def make_problem(mode: str, level: str, unit_config: Optional[UnitConfig] = None) -> Problem:
     if mode == "arithmetic":
         return gen_arithmetic(level)
     if mode == "unit":
-        return gen_unit_conversion()
+        return gen_unit_conversion(unit_config)
     if mode == "timezone":
         return gen_timezone()
-    return gen_mixed(level)
+    return gen_mixed(level, unit_config)
 
 
 def show_unit_hint(prob: Problem):
@@ -491,7 +556,7 @@ def run_game():
     rounds = choose_rounds()
     print()
     if mode == "unit":
-        print("Units: length(mm, cm, m, km, in, ft, yd, mi), mass(g, kg, lb, oz), volume(ml, L, gal, cup), temp(C, F, K)")
+        print("Units: length(mm, cm, m, km, in, ft, yd, mi), mass(g, kg, lb, oz), volume(ml, L, gal, cup), temp(C, F, K), number(thousand, lakh, million, crore, billion)")
     if mode == "timezone":
         zones = ", ".join(sorted(TIMEZONES.keys()))
         print(f"Timezones used (no DST): {zones}")

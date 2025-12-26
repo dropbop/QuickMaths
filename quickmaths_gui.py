@@ -20,6 +20,8 @@ from quickmaths import (
     make_problem,
     score_question,
     fmt_hhmm,
+    UnitConfig,
+    UnitConv,
 )
 
 
@@ -42,6 +44,10 @@ class QuickMathsGUI(tk.Tk):
         self.start_time = 0.0
         self.timer_after_id = None
         self.results = []
+
+        # Unit settings
+        self.category_vars = {}  # Dict[str, BooleanVar]
+        self.unit_vars = {}      # Dict[str, Dict[str, BooleanVar]]
 
         # Views
         self.container = ttk.Frame(self, padding=12)
@@ -107,6 +113,35 @@ class QuickMathsGUI(tk.Tk):
             )
             rb.grid(row=0, column=i, padx=6, pady=6, sticky="w")
 
+        # Unit settings frame
+        unit_frame = ttk.LabelFrame(f, text="Unit Settings (for Unit/Mixed modes)")
+
+        # Category and unit data
+        categories_data = [
+            ("length", "Length", list(UnitConv.LENGTH_FACTORS.keys())),
+            ("mass", "Mass", list(UnitConv.MASS_FACTORS.keys())),
+            ("volume", "Volume", list(UnitConv.VOLUME_FACTORS.keys())),
+            ("temp", "Temperature", list(UnitConv.TEMP_UNITS)),
+            ("number", "Number", list(UnitConv.NUMBER_FACTORS.keys())),
+        ]
+
+        for row_idx, (cat_key, cat_label, units) in enumerate(categories_data):
+            # Category checkbox
+            cat_var = tk.BooleanVar(value=True)
+            self.category_vars[cat_key] = cat_var
+            cat_cb = ttk.Checkbutton(unit_frame, text=cat_label, variable=cat_var)
+            cat_cb.grid(row=row_idx, column=0, padx=6, pady=2, sticky="w")
+
+            # Unit checkboxes in a frame
+            units_frame = ttk.Frame(unit_frame)
+            self.unit_vars[cat_key] = {}
+            for col_idx, unit in enumerate(units):
+                unit_var = tk.BooleanVar(value=True)
+                self.unit_vars[cat_key][unit] = unit_var
+                ucb = ttk.Checkbutton(units_frame, text=unit, variable=unit_var)
+                ucb.pack(side=tk.LEFT, padx=2)
+            units_frame.grid(row=row_idx, column=1, padx=6, pady=2, sticky="w")
+
         # Rounds
         cfg_frame = ttk.LabelFrame(f, text="Session")
         ttk.Label(cfg_frame, text="Questions:").grid(row=0, column=0, padx=(6, 2), pady=6)
@@ -122,10 +157,12 @@ class QuickMathsGUI(tk.Tk):
         subtitle.pack(anchor="w", pady=(0, 10))
         mode_frame.pack(fill=tk.X, pady=6)
         diff_frame.pack(fill=tk.X, pady=6)
+        unit_frame.pack(fill=tk.X, pady=6)
         cfg_frame.pack(fill=tk.X, pady=6)
         start_btn.pack(pady=(10, 0))
 
         self._diff_frame = diff_frame
+        self._unit_frame = unit_frame
         self._on_mode_change()  # initial toggle
 
     def _build_game_view(self) -> None:
@@ -208,13 +245,30 @@ class QuickMathsGUI(tk.Tk):
             self._reset_session()
 
     def _on_mode_change(self) -> None:
-        # Difficulty selector is relevant for arithmetic and mixed
         mode = self.mode_var.get()
-        show = mode in ("arithmetic", "mixed")
-        if show:
+        # Difficulty selector is relevant for arithmetic and mixed
+        if mode in ("arithmetic", "mixed"):
             self._diff_frame.pack_configure(fill=tk.X, pady=6)
         else:
             self._diff_frame.pack_forget()
+        # Unit settings relevant for unit and mixed
+        if mode in ("unit", "mixed"):
+            self._unit_frame.pack_configure(fill=tk.X, pady=6)
+        else:
+            self._unit_frame.pack_forget()
+
+    def _collect_unit_config(self) -> UnitConfig:
+        """Collect current unit settings into a UnitConfig object."""
+        enabled = {cat for cat, var in self.category_vars.items() if var.get()}
+        allowed = {}
+        for cat, unit_dict in self.unit_vars.items():
+            units = {unit for unit, var in unit_dict.items() if var.get()}
+            if units:
+                allowed[cat] = units
+        # Fallback if nothing selected
+        if not enabled:
+            enabled = {"length", "mass", "volume", "temp", "number"}
+        return UnitConfig(enabled_categories=enabled, allowed_units=allowed)
 
     # ---------- Session control ----------
     def _reset_session(self) -> None:
@@ -289,7 +343,12 @@ class QuickMathsGUI(tk.Tk):
         mode = self.mode_var.get()
         level = self.level_var.get()
 
-        self.current_problem = make_problem(mode, level)
+        # Collect unit config for unit/mixed modes
+        unit_config = None
+        if mode in ("unit", "mixed"):
+            unit_config = self._collect_unit_config()
+
+        self.current_problem = make_problem(mode, level, unit_config)
 
         # Update UI
         self.lbl_progress.configure(text=f"[{self.current_round}/{self.total_rounds}]")
